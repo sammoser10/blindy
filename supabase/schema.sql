@@ -5,16 +5,17 @@
 -- 0. CLEAN SLATE - drop everything if it exists
 -- ============================================
 
-drop trigger if exists tasting_entries_updated_at on tasting_entries;
-drop trigger if exists on_auth_user_created on auth.users;
-drop function if exists update_updated_at();
-drop function if exists handle_new_user();
-
+-- Drop tables (CASCADE automatically removes their triggers, policies, etc.)
 drop table if exists tasting_entries cascade;
 drop table if exists wines cascade;
 drop table if exists session_participants cascade;
 drop table if exists sessions cascade;
 drop table if exists profiles cascade;
+
+-- Drop trigger on auth.users (this table always exists)
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists handle_new_user();
+drop function if exists update_updated_at();
 
 -- ============================================
 -- 1. CREATE ALL TABLES
