@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-wine-50: #fdf2f4;
+  --color-wine-100: #fce7eb;
+  --color-wine-200: #f9d0d9;
+  --color-wine-300: #f4a9b8;
+  --color-wine-400: #ec7693;
+  --color-wine-500: #e04b70;
+  --color-wine-600: #cc2d5a;
+  --color-wine-700: #ab1f48;
+  --color-wine-800: #8f1d40;
+  --color-wine-900: #722038;
+  --color-wine-950: #4a0d1f;
+
+  --color-cream-50: #fefdf8;
+  --color-cream-100: #fdf9ed;
+  --color-cream-200: #faf0d3;
+  --color-cream-300: #f5e3b0;
+
+  --color-gold-400: #d4a843;
+  --color-gold-500: #c4952e;
+  --color-gold-600: #a67824;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #fefdf8;
+  --foreground: #2d1f24;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mobile-optimized defaults */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, select, button {
+  font-size: 16px; /* prevents zoom on iOS */
+}
