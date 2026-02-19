@@ -22,27 +22,27 @@ export default function Home() {
 
         {/* Features */}
         <div className="grid grid-cols-2 gap-4 max-w-sm w-full mb-10">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-wine-100">
-            <Users className="w-6 h-6 text-wine-700 mb-2" />
+          <div className="rounded-2xl p-4 bg-wine-50/50">
+            <Users className="w-5 h-5 text-wine-400 mb-2" />
             <p className="text-sm font-medium text-wine-900">Join together</p>
             <p className="text-xs text-wine-600/70">
               Everyone joins with a code
             </p>
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-wine-100">
-            <Wine className="w-6 h-6 text-wine-700 mb-2" />
+          <div className="rounded-2xl p-4 bg-wine-50/50">
+            <Wine className="w-5 h-5 text-wine-400 mb-2" />
             <p className="text-sm font-medium text-wine-900">Taste blind</p>
             <p className="text-xs text-wine-600/70">
               Notes, guesses, ratings
             </p>
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-wine-100">
-            <Star className="w-6 h-6 text-wine-700 mb-2" />
+          <div className="rounded-2xl p-4 bg-wine-50/50">
+            <Star className="w-5 h-5 text-wine-400 mb-2" />
             <p className="text-sm font-medium text-wine-900">Rate & rank</p>
             <p className="text-xs text-wine-600/70">Score each wine 1-10</p>
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-wine-100">
-            <Eye className="w-6 h-6 text-wine-700 mb-2" />
+          <div className="rounded-2xl p-4 bg-wine-50/50">
+            <Eye className="w-5 h-5 text-wine-400 mb-2" />
             <p className="text-sm font-medium text-wine-900">Reveal</p>
             <p className="text-xs text-wine-600/70">
               See everyone&apos;s picks
