@@ -16,6 +16,7 @@ drop table if exists profiles cascade;
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists handle_new_user();
 drop function if exists update_updated_at();
+drop function if exists is_session_member(uuid);
 
 -- ============================================
 -- 1. CREATE ALL TABLES
@@ -92,7 +93,21 @@ alter table wines enable row level security;
 alter table tasting_entries enable row level security;
 
 -- ============================================
--- 3. RLS POLICIES
+-- 3. HELPER FUNCTION (must come before policies)
+-- ============================================
+
+-- security definer function that checks session membership WITHOUT
+-- going through RLS on session_participants (avoids infinite recursion).
+create or replace function is_session_member(p_session_id uuid)
+returns boolean as $$
+  select exists (
+    select 1 from session_participants
+    where session_id = p_session_id and user_id = auth.uid()
+  );
+$$ language sql security definer;
+
+-- ============================================
+-- 4. RLS POLICIES
 -- ============================================
 
 -- Profiles
@@ -105,12 +120,10 @@ create policy "sessions_select" on sessions for select using (true);
 create policy "sessions_insert" on sessions for insert with check (auth.uid() = host_id);
 create policy "sessions_update" on sessions for update using (auth.uid() = host_id);
 
--- Session participants
+-- Session participants (uses is_session_member to avoid self-referencing recursion)
 create policy "participants_select" on session_participants for select using (
+  is_session_member(session_id) or
   exists (
-    select 1 from session_participants sp
-    where sp.session_id = session_participants.session_id and sp.user_id = auth.uid()
-  ) or exists (
     select 1 from sessions s
     where s.id = session_participants.session_id and s.host_id = auth.uid()
   )
@@ -120,10 +133,8 @@ create policy "participants_delete" on session_participants for delete using (au
 
 -- Wines
 create policy "wines_select" on wines for select using (
+  is_session_member(session_id) or
   exists (
-    select 1 from session_participants sp
-    where sp.session_id = wines.session_id and sp.user_id = auth.uid()
-  ) or exists (
     select 1 from sessions s
     where s.id = wines.session_id and s.host_id = auth.uid()
   )
@@ -142,10 +153,7 @@ create policy "entries_select" on tasting_entries for select using (
     select 1 from sessions s
     where s.id = session_id and s.status = 'revealed' and (
       s.host_id = auth.uid() or
-      exists (
-        select 1 from session_participants sp
-        where sp.session_id = s.id and sp.user_id = auth.uid()
-      )
+      is_session_member(s.id)
     )
   )
 );
@@ -153,7 +161,7 @@ create policy "entries_insert" on tasting_entries for insert with check (auth.ui
 create policy "entries_update" on tasting_entries for update using (auth.uid() = user_id);
 
 -- ============================================
--- 4. FUNCTIONS & TRIGGERS
+-- 5. FUNCTIONS & TRIGGERS
 -- ============================================
 
 -- Auth uses username@blindy.app as fake emails; display_name is always
@@ -184,7 +192,7 @@ create trigger tasting_entries_updated_at
   for each row execute function update_updated_at();
 
 -- ============================================
--- 5. ENABLE REALTIME
+-- 6. ENABLE REALTIME
 -- ============================================
 
 alter publication supabase_realtime add table sessions;

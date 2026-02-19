@@ -61,131 +61,99 @@ export default function CreateSessionPage() {
     setError("");
     setLoading(true);
 
-    try {
-      const supabase = createClient();
+    const supabase = createClient();
 
-      // Auth: use existing session or sign in/up
-      let userId: string | null = null;
+    // Auth: use existing session or sign in/up
+    let userId: string | null = null;
 
-      if (existingUser) {
-        const { data: { user } } = await supabase.auth.getUser();
-        userId = user?.id ?? null;
-      }
-
-      if (!userId) {
-        if (!username.trim()) {
-          setError("Enter a username");
-          setLoading(false);
-          return;
-        }
-        if (!password) {
-          setError("Enter a password");
-          setLoading(false);
-          return;
-        }
-
-        const result = await signInOrSignUp(supabase, username, password);
-        if (result.error) {
-          setError(result.error);
-          setLoading(false);
-          return;
-        }
-        userId = result.userId;
-      }
-
-      if (!userId) {
-        setError("Authentication failed. Try again.");
-        setLoading(false);
-        return;
-      }
-
-      // Verify we actually have a session (JWT), not just a userId
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      if (!authSession) {
-        setError("DEBUG: Got userId but no session. Auth is broken.");
-        setLoading(false);
-        return;
-      }
-
-      // Generate a unique join code
-      let joinCode = generateJoinCode();
-      let attempts = 0;
-      while (attempts < 5) {
-        const { data: existing } = await supabase
-          .from("sessions")
-          .select("id")
-          .eq("join_code", joinCode)
-          .single();
-        if (!existing) break;
-        joinCode = generateJoinCode();
-        attempts++;
-      }
-
-      const { data: session, error: createError } = await supabase
-        .from("sessions")
-        .insert({
-          host_id: userId,
-          name: name.trim(),
-          join_code: joinCode,
-          wine_count: wineCount,
-          guess_fields: guessFields,
-          status: "lobby",
-        })
-        .select()
-        .single();
-
-      if (createError || !session) {
-        setError(`DEBUG session insert: ${createError?.message ?? "no data returned"}`);
-        setLoading(false);
-        return;
-      }
-
-      // Host also joins as participant
-      const { error: participantError } = await supabase
-        .from("session_participants")
-        .insert({
-          session_id: session.id,
-          user_id: userId,
-        });
-
-      if (participantError) {
-        setError(`DEBUG participant insert: ${participantError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      // Pre-create wine entries
-      const wineInserts = Array.from({ length: wineCount }, (_, i) => ({
-        session_id: session.id,
-        wine_number: i + 1,
-      }));
-      const { error: wineError } = await supabase.from("wines").insert(wineInserts);
-
-      if (wineError) {
-        setError(`DEBUG wine insert: ${wineError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      // Verify the participant was actually inserted
-      const { data: verify, error: verifyError } = await supabase
-        .from("session_participants")
-        .select("id")
-        .eq("session_id", session.id)
-        .eq("user_id", userId);
-
-      if (verifyError || !verify || verify.length === 0) {
-        setError(`DEBUG verify: participant not found after insert. RLS may be blocking. Error: ${verifyError?.message ?? "none"}`);
-        setLoading(false);
-        return;
-      }
-
-      router.push(`/session/${session.id}`);
-      router.refresh();
-    } catch (err) {
-      setError(`DEBUG exception: ${err instanceof Error ? err.message : String(err)}`);
-      setLoading(false);
+    if (existingUser) {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
     }
+
+    if (!userId) {
+      if (!username.trim()) {
+        setError("Enter a username");
+        setLoading(false);
+        return;
+      }
+      if (!password) {
+        setError("Enter a password");
+        setLoading(false);
+        return;
+      }
+
+      const result = await signInOrSignUp(supabase, username, password);
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      userId = result.userId;
+    }
+
+    if (!userId) {
+      setError("Authentication failed. Try again.");
+      setLoading(false);
+      return;
+    }
+
+    // Generate a unique join code
+    let joinCode = generateJoinCode();
+    let attempts = 0;
+    while (attempts < 5) {
+      const { data: existing } = await supabase
+        .from("sessions")
+        .select("id")
+        .eq("join_code", joinCode)
+        .single();
+      if (!existing) break;
+      joinCode = generateJoinCode();
+      attempts++;
+    }
+
+    const { data: session, error: createError } = await supabase
+      .from("sessions")
+      .insert({
+        host_id: userId,
+        name: name.trim(),
+        join_code: joinCode,
+        wine_count: wineCount,
+        guess_fields: guessFields,
+        status: "lobby",
+      })
+      .select()
+      .single();
+
+    if (createError || !session) {
+      setError(createError?.message ?? "Failed to create session.");
+      setLoading(false);
+      return;
+    }
+
+    // Host also joins as participant
+    const { error: participantError } = await supabase
+      .from("session_participants")
+      .insert({
+        session_id: session.id,
+        user_id: userId,
+      });
+
+    if (participantError) {
+      setError(participantError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Pre-create wine entries
+    const wineInserts = Array.from({ length: wineCount }, (_, i) => ({
+      session_id: session.id,
+      wine_number: i + 1,
+    }));
+    await supabase.from("wines").insert(wineInserts);
+
+    router.push(`/session/${session.id}`);
+    router.refresh();
   }
 
   return (
