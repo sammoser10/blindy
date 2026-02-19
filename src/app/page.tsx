@@ -53,13 +53,13 @@ export default function Home() {
         {/* CTA */}
         <div className="flex flex-col gap-3 w-full max-w-sm">
           <Link
-            href="/login"
+            href="/session/create"
             className="w-full py-3.5 rounded-xl bg-wine-900 text-cream-50 font-semibold text-center hover:bg-wine-800 active:bg-wine-950 transition-colors"
           >
-            Get started
+            Host a tasting
           </Link>
           <Link
-            href="/login?mode=join"
+            href="/session/join"
             className="w-full py-3.5 rounded-xl bg-white text-wine-900 font-semibold text-center border border-wine-200 hover:bg-wine-50 active:bg-wine-100 transition-colors"
           >
             Join a tasting

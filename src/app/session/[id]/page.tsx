@@ -13,7 +13,7 @@ export default async function SessionPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/");
 
   const { data: session } = await supabase
     .from("sessions")

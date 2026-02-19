@@ -156,6 +156,8 @@ create policy "entries_update" on tasting_entries for update using (auth.uid() =
 -- 4. FUNCTIONS & TRIGGERS
 -- ============================================
 
+-- Auth uses username@blindy.app as fake emails; display_name is always
+-- passed via raw_user_meta_data during sign-up. Email prefix is a fallback.
 create or replace function handle_new_user()
 returns trigger as $$
 begin

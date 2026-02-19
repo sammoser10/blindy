@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { signInOrSignUp } from "@/lib/auth";
 import { generateJoinCode } from "@/lib/utils";
 import { GuessField, GUESS_FIELD_LABELS } from "@/lib/types";
 import Link from "next/link";
-import { ArrowLeft, Wine, Minus, Plus, Check } from "lucide-react";
+import { ArrowLeft, Wine, Minus, Plus, Check, User } from "lucide-react";
 
 const ALL_GUESS_FIELDS: GuessField[] = [
   "grape",
@@ -26,8 +27,19 @@ export default function CreateSessionPage() {
     "region",
     "vintage",
   ]);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [existingUser, setExistingUser] = useState(false);
+
+  // Check if already logged in
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setExistingUser(true);
+    });
+  }, []);
 
   function toggleField(field: GuessField) {
     setGuessFields((prev) =>
@@ -50,12 +62,39 @@ export default function CreateSessionPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) {
-      router.push("/login");
+    // Auth: use existing session or sign in/up
+    let userId: string | null = null;
+
+    if (existingUser) {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    }
+
+    if (!userId) {
+      if (!username.trim()) {
+        setError("Enter a username");
+        setLoading(false);
+        return;
+      }
+      if (!password) {
+        setError("Enter a password");
+        setLoading(false);
+        return;
+      }
+
+      const result = await signInOrSignUp(supabase, username, password);
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      userId = result.userId;
+    }
+
+    if (!userId) {
+      setError("Authentication failed. Try again.");
+      setLoading(false);
       return;
     }
 
@@ -76,7 +115,7 @@ export default function CreateSessionPage() {
     const { data: session, error: createError } = await supabase
       .from("sessions")
       .insert({
-        host_id: user.id,
+        host_id: userId,
         name: name.trim(),
         join_code: joinCode,
         wine_count: wineCount,
@@ -95,7 +134,7 @@ export default function CreateSessionPage() {
     // Host also joins as participant
     await supabase.from("session_participants").insert({
       session_id: session.id,
-      user_id: user.id,
+      user_id: userId,
     });
 
     // Pre-create wine entries
@@ -111,11 +150,11 @@ export default function CreateSessionPage() {
   return (
     <main className="min-h-dvh flex flex-col px-6 py-6 max-w-lg mx-auto">
       <Link
-        href="/dashboard"
+        href="/"
         className="flex items-center gap-1.5 text-wine-600 hover:text-wine-800 mb-6 w-fit"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm">Dashboard</span>
+        <span className="text-sm">Home</span>
       </Link>
 
       <h1 className="text-2xl font-bold text-wine-950 mb-1">New tasting</h1>
@@ -200,6 +239,70 @@ export default function CreateSessionPage() {
             })}
           </div>
         </div>
+
+        {/* Auth fields - only show if not already logged in */}
+        {!existingUser && (
+          <div className="border-t border-wine-100 pt-6">
+            <p className="text-xs font-medium text-wine-500 uppercase tracking-wider mb-4">
+              Your identity
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="username"
+                  className="block text-sm font-medium text-wine-800 mb-1.5"
+                >
+                  Username
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  required={!existingUser}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Your display name"
+                  className="w-full px-4 py-3 rounded-xl border border-wine-200 bg-white text-wine-950 placeholder:text-wine-300 focus:outline-none focus:ring-2 focus:ring-wine-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-wine-800 mb-1.5"
+                >
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required={!existingUser}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="To reclaim your name later"
+                  minLength={6}
+                  className="w-full px-4 py-3 rounded-xl border border-wine-200 bg-white text-wine-950 placeholder:text-wine-300 focus:outline-none focus:ring-2 focus:ring-wine-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {existingUser && (
+          <div className="flex items-center gap-2 text-sm text-wine-600 bg-wine-50 rounded-xl px-4 py-3">
+            <User className="w-4 h-4" />
+            <span>Creating as your current account</span>
+            <button
+              type="button"
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                setExistingUser(false);
+              }}
+              className="ml-auto text-wine-800 font-medium hover:underline"
+            >
+              Switch
+            </button>
+          </div>
+        )}
 
         {error && (
           <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
