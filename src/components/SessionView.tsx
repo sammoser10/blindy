@@ -40,12 +40,16 @@ export function SessionView({
 
   const isHost = currentUserId === session.host_id;
 
-  // Poll for fresh data — Supabase Realtime with RLS can be unreliable,
-  // so we poll every 3s as the guaranteed sync mechanism.
+  // Poll for fresh data every 3s
   useEffect(() => {
     const supabase = createClient();
 
     async function refetch() {
+      // Verify we have an auth session before querying — if not,
+      // skip and keep the server-rendered data intact.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const [{ data: pData }, { data: wData }, { data: eData }, { data: sData }] =
         await Promise.all([
           supabase
@@ -67,14 +71,13 @@ export function SessionView({
             .eq("id", session.id)
             .single(),
         ]);
-      if (pData) setParticipants(pData as typeof participants);
+      // Only update if we got real data — empty arrays from RLS failures
+      // should not overwrite the server-rendered state.
+      if (pData && pData.length > 0) setParticipants(pData as typeof participants);
       if (wData) setWines(wData);
       if (eData) setEntries(eData);
       if (sData) setSession(sData as Session);
     }
-
-    // Initial fetch to catch anything missed between SSR and mount
-    refetch();
 
     const interval = setInterval(refetch, 3000);
     return () => clearInterval(interval);

@@ -145,6 +145,7 @@ export default function CreateSessionPage() {
     await supabase.from("wines").insert(wineInserts);
 
     router.push(`/session/${session.id}`);
+    router.refresh();
   }
 
   return (

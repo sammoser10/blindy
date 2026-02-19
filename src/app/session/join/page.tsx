@@ -116,6 +116,7 @@ function JoinForm() {
     }
 
     router.push(`/session/${session.id}`);
+    router.refresh();
   }
 
   return (
