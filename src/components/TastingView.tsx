@@ -364,32 +364,13 @@ function GuessesTab({
         />
       )}
       {guessFields.includes("wine_type") && (
-        <div>
-          <label className="block text-sm font-medium text-wine-800 mb-1.5">
-            Wine Type
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {["Red", "White", "Rosé", "Sparkling", "Orange", "Dessert"].map(
-              (type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    handleChange("guess_wine_type", type);
-                    onSave({ guess_wine_type: type });
-                  }}
-                  className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium transition-colors",
-                    guesses.guess_wine_type === type
-                      ? "bg-wine-900 text-cream-50"
-                      : "bg-white border border-wine-200 text-wine-600 hover:bg-wine-50"
-                  )}
-                >
-                  {type}
-                </button>
-              )
-            )}
-          </div>
-        </div>
+        <GuessInput
+          label="Wine Type"
+          placeholder="e.g., Brunello, Barolo, Sancerre, Cava"
+          value={guesses.guess_wine_type}
+          onChange={(v) => handleChange("guess_wine_type", v)}
+          onBlur={() => handleBlur("guess_wine_type")}
+        />
       )}
       {guessFields.includes("region") && (
         <GuessInput
