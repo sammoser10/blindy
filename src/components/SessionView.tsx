@@ -110,7 +110,37 @@ export function SessionView({
           if (data) setEntries(data);
         }
       )
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          // Refetch all data to catch any changes that happened
+          // between the server render and the subscription going live
+          const [{ data: pData }, { data: wData }, { data: eData }, { data: sData }] =
+            await Promise.all([
+              supabase
+                .from("session_participants")
+                .select("*, profiles(*)")
+                .eq("session_id", session.id),
+              supabase
+                .from("wines")
+                .select("*")
+                .eq("session_id", session.id)
+                .order("wine_number"),
+              supabase
+                .from("tasting_entries")
+                .select("*")
+                .eq("session_id", session.id),
+              supabase
+                .from("sessions")
+                .select("*")
+                .eq("id", session.id)
+                .single(),
+            ]);
+          if (pData) setParticipants(pData as typeof participants);
+          if (wData) setWines(wData);
+          if (eData) setEntries(eData);
+          if (sData) setSession(sData as Session);
+        }
+      });
 
     return () => {
       supabase.removeChannel(sessionChannel);
