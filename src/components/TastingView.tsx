@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Session,
@@ -240,12 +240,12 @@ function NotesTab({
   const [overall, setOverall] = useState(entry?.overall_notes ?? "");
 
   // Sync state when entry changes (e.g., switching wines)
-  useState(() => {
+  useEffect(() => {
     setAppearance(entry?.appearance_notes ?? "");
     setNose(entry?.nose_notes ?? "");
     setPalate(entry?.palate_notes ?? "");
     setOverall(entry?.overall_notes ?? "");
-  });
+  }, [entry]);
 
   function handleBlur(field: string, value: string) {
     onSave({ [field]: value });
@@ -333,6 +333,16 @@ function GuessesTab({
     guess_producer: entry?.guess_producer ?? "",
     guess_vintage: entry?.guess_vintage ?? null,
   });
+
+  useEffect(() => {
+    setGuesses({
+      guess_grape: entry?.guess_grape ?? "",
+      guess_wine_type: entry?.guess_wine_type ?? "",
+      guess_region: entry?.guess_region ?? "",
+      guess_producer: entry?.guess_producer ?? "",
+      guess_vintage: entry?.guess_vintage ?? null,
+    });
+  }, [entry]);
 
   function handleChange(field: string, value: string | number | null) {
     setGuesses((prev) => ({ ...prev, [field]: value }));
@@ -472,6 +482,11 @@ function RatingTab({
 }) {
   const [rating, setRating] = useState(entry?.rating ?? null);
   const [ranking, setRanking] = useState(entry?.ranking ?? null);
+
+  useEffect(() => {
+    setRating(entry?.rating ?? null);
+    setRanking(entry?.ranking ?? null);
+  }, [entry]);
 
   return (
     <div className="space-y-8">
