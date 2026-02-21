@@ -140,9 +140,9 @@ export function ResultsView({
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-wine-950">
-                    {stat.avgRating?.toFixed(1)}
+                    {stat.avgRating?.toFixed(0)}
                   </p>
-                  <p className="text-xs text-wine-400">avg</p>
+                  <p className="text-xs text-wine-400">avg pts</p>
                 </div>
               </div>
             ))}

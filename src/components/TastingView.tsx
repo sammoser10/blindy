@@ -445,60 +445,44 @@ function RatingTab({
   allEntries: TastingEntry[];
   onSave: (u: Partial<TastingEntry>) => void;
 }) {
-  const [rating, setRating] = useState(entry?.rating ?? null);
+  const [rating, setRating] = useState<string>(
+    entry?.rating !== null && entry?.rating !== undefined
+      ? String(entry.rating)
+      : ""
+  );
   const [ranking, setRanking] = useState(entry?.ranking ?? null);
+
+  function handleRatingSave() {
+    const num = parseFloat(rating);
+    if (rating && !isNaN(num) && num >= 50 && num <= 100) {
+      onSave({ rating: num });
+    }
+  }
 
   return (
     <div className="space-y-8">
       {/* Rating */}
       <div>
-        <label className="block text-sm font-medium text-wine-800 mb-3">
+        <label className="block text-sm font-medium text-wine-800 mb-1">
           Rating
         </label>
-        <div className="text-center mb-4">
-          <span className="text-5xl font-bold text-wine-950">
-            {rating ?? "–"}
-          </span>
-          <span className="text-lg text-wine-400 ml-1">/ 10</span>
-        </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <button
-              key={n}
-              onClick={() => {
-                setRating(n);
-                onSave({ rating: n });
-              }}
-              className={cn(
-                "w-11 h-11 rounded-xl font-semibold text-sm transition-colors",
-                rating === n
-                  ? "bg-wine-900 text-cream-50"
-                  : "bg-white border border-wine-200 text-wine-600 hover:bg-wine-50"
-              )}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        {/* Half points */}
-        <div className="flex justify-center gap-2 mt-2">
-          {[0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5].map((n) => (
-            <button
-              key={n}
-              onClick={() => {
-                setRating(n);
-                onSave({ rating: n });
-              }}
-              className={cn(
-                "w-11 h-7 rounded-lg font-medium text-xs transition-colors",
-                rating === n
-                  ? "bg-wine-700 text-cream-50"
-                  : "bg-wine-50 text-wine-400 hover:bg-wine-100"
-              )}
-            >
-              {n}
-            </button>
-          ))}
+        <p className="text-xs text-wine-500 mb-3">
+          100-point wine scale (50–100)
+        </p>
+        <div className="flex items-baseline gap-3">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={50}
+            max={100}
+            step={1}
+            value={rating}
+            onChange={(e) => setRating(e.target.value)}
+            onBlur={handleRatingSave}
+            placeholder="e.g., 92"
+            className="w-28 text-center text-4xl font-bold text-wine-950 px-4 py-3 rounded-xl border border-wine-200 bg-white placeholder:text-wine-200 focus:outline-none focus:ring-2 focus:ring-wine-500 focus:border-transparent"
+          />
+          <span className="text-lg text-wine-400">/ 100</span>
         </div>
       </div>
 
