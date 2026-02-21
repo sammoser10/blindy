@@ -21,6 +21,7 @@ import {
   Trophy,
   Star,
   Users,
+  Target,
   Edit3,
   Check,
 } from "lucide-react";
@@ -73,6 +74,40 @@ export function ResultsView({
   const preferenceBoard = [...wineStats]
     .filter((s) => s.avgRanking !== null)
     .sort((a, b) => (a.avgRanking ?? 999) - (b.avgRanking ?? 999));
+
+  // Compute who is closest to the group consensus preference ranking
+  // Consensus position = index in preferenceBoard (1-indexed)
+  const consensusMap = new Map<number, number>(); // wine_number → consensus position
+  preferenceBoard.forEach((stat, idx) => {
+    consensusMap.set(stat.wine.wine_number, idx + 1);
+  });
+
+  const consensusScores = participants
+    .map((p) => {
+      const userEntries = entries.filter(
+        (e) => e.user_id === p.user_id && e.ranking !== null
+      );
+      if (userEntries.length === 0) return null;
+
+      let totalDiff = 0;
+      let rankedCount = 0;
+      for (const e of userEntries) {
+        const consensusPos = consensusMap.get(e.wine_number);
+        if (consensusPos !== undefined && e.ranking !== null) {
+          totalDiff += Math.abs(e.ranking - consensusPos);
+          rankedCount++;
+        }
+      }
+
+      return {
+        participant: p,
+        name: p.profiles?.display_name ?? "Unknown",
+        totalDiff,
+        rankedCount,
+      };
+    })
+    .filter((s): s is NonNullable<typeof s> => s !== null && s.rankedCount > 0)
+    .sort((a, b) => a.totalDiff - b.totalDiff);
 
   function getParticipantName(userId: string): string {
     const p = participants.find((p) => p.user_id === userId);
@@ -206,6 +241,59 @@ export function ResultsView({
                     #{stat.avgRanking?.toFixed(1)}
                   </p>
                   <p className="text-xs text-wine-400">avg rank</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Consensus match */}
+      {consensusScores.length > 0 && preferenceBoard.length >= 2 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-wine-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Target className="w-4 h-4" />
+            Closest to consensus
+          </h2>
+          <p className="text-xs text-wine-400 mb-3">
+            Whose preference ranking best matched the group?
+          </p>
+          <div className="space-y-2">
+            {consensusScores.map((score, idx) => (
+              <div
+                key={score.participant.user_id}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-xl border",
+                  idx === 0
+                    ? "bg-amber-50 border-amber-200"
+                    : "bg-white border-wine-100"
+                )}
+              >
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
+                    idx === 0
+                      ? "bg-amber-500 text-white"
+                      : "bg-wine-100 text-wine-600"
+                  )}
+                >
+                  {score.name[0].toUpperCase()}
+                </div>
+                <span className="flex-1 font-semibold text-sm text-wine-950">
+                  {score.name}
+                  {idx === 0 && (
+                    <span className="ml-2 text-xs font-normal text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                      Group palate
+                    </span>
+                  )}
+                </span>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-wine-950">
+                    {score.totalDiff === 0 ? "Perfect" : `${score.totalDiff} off`}
+                  </p>
+                  <p className="text-xs text-wine-400">
+                    {score.rankedCount} ranked
+                  </p>
                 </div>
               </div>
             ))}
