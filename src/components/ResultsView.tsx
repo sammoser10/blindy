@@ -47,9 +47,10 @@ export function ResultsView({
   const guessFields = session.guess_fields as GuessField[];
 
   // Compute leaderboard: average rating for each wine
+  // DB stores ratings as 1–10 (100pt scale / 10), so multiply back for display
   const wineStats = wines.map((wine) => {
     const wineEntries = entries.filter((e) => e.wine_number === wine.wine_number);
-    const ratings = wineEntries.filter((e) => e.rating !== null).map((e) => e.rating!);
+    const ratings = wineEntries.filter((e) => e.rating !== null).map((e) => e.rating! * 10);
     const avgRating = ratings.length > 0
       ? ratings.reduce((a, b) => a + b, 0) / ratings.length
       : null;
@@ -314,7 +315,7 @@ export function ResultsView({
                               {entry?.rating !== null && entry?.rating !== undefined && (
                                 <span className="flex items-center gap-1 text-sm font-bold text-wine-800">
                                   <Star className="w-3.5 h-3.5 text-gold-500 fill-gold-500" />
-                                  {entry.rating}
+                                  {Math.round(entry.rating * 10)}
                                 </span>
                               )}
                             </div>

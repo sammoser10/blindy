@@ -445,17 +445,19 @@ function RatingTab({
   allEntries: TastingEntry[];
   onSave: (u: Partial<TastingEntry>) => void;
 }) {
+  // DB column is numeric(3,1) with CHECK 1–10, so we store displayValue/10
   const [rating, setRating] = useState<string>(
     entry?.rating !== null && entry?.rating !== undefined
-      ? String(entry.rating)
+      ? String(Math.round(entry.rating * 10))
       : ""
   );
   const [ranking, setRanking] = useState(entry?.ranking ?? null);
 
-  function handleRatingSave() {
-    const num = parseFloat(rating);
-    if (rating && !isNaN(num) && num >= 50 && num <= 100) {
-      onSave({ rating: num });
+  function handleRatingChange(value: string) {
+    setRating(value);
+    const num = parseFloat(value);
+    if (value && !isNaN(num) && num >= 50 && num <= 100) {
+      onSave({ rating: num / 10 });
     }
   }
 
@@ -477,8 +479,7 @@ function RatingTab({
             max={100}
             step={1}
             value={rating}
-            onChange={(e) => setRating(e.target.value)}
-            onBlur={handleRatingSave}
+            onChange={(e) => handleRatingChange(e.target.value)}
             placeholder="e.g., 92"
             className="w-28 text-center text-4xl font-bold text-wine-950 px-4 py-3 rounded-xl border border-wine-200 bg-white placeholder:text-wine-200 focus:outline-none focus:ring-2 focus:ring-wine-500 focus:border-transparent"
           />
