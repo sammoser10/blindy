@@ -100,23 +100,21 @@ export function ResultsView({
         }
       }
 
-      // Normalize: average diff per ranked wine (so partial rankers are comparable)
-      const avgDiff = rankedCount > 0 ? totalDiff / rankedCount : null;
-
       return {
         participant: p,
         name: p.profiles?.display_name ?? "Unknown",
         totalDiff,
-        avgDiff,
         rankedCount,
       };
     })
     .sort((a, b) => {
-      // Users who ranked go first, sorted by avgDiff; non-rankers at the end
-      if (a.avgDiff === null && b.avgDiff === null) return 0;
-      if (a.avgDiff === null) return 1;
-      if (b.avgDiff === null) return -1;
-      return a.avgDiff - b.avgDiff;
+      // Users who ranked go first, sorted by totalDiff; non-rankers at the end
+      if (a.rankedCount === 0 && b.rankedCount === 0) return 0;
+      if (a.rankedCount === 0) return 1;
+      if (b.rankedCount === 0) return -1;
+      if (a.totalDiff !== b.totalDiff) return a.totalDiff - b.totalDiff;
+      // Tie-break: more wines ranked = better
+      return b.rankedCount - a.rankedCount;
     });
 
   function getParticipantName(userId: string): string {
@@ -270,7 +268,7 @@ export function ResultsView({
           </p>
           <div className="space-y-2">
             {consensusScores.map((score, idx) => {
-              const hasRanked = score.avgDiff !== null;
+              const hasRanked = score.rankedCount > 0;
               const isWinner = hasRanked && idx === 0;
               return (
                 <div
