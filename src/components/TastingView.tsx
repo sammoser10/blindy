@@ -41,7 +41,7 @@ type Tab = "notes" | "guesses" | "rating";
 export function TastingView({
   session,
   wines,
-  entries,
+  entries: serverEntries,
   participants,
   currentUserId,
   isHost,
@@ -50,12 +50,13 @@ export function TastingView({
   const [currentWine, setCurrentWine] = useState(1);
   const [activeTab, setActiveTab] = useState<Tab>("notes");
   const [saving, setSaving] = useState(false);
+  const [localEntries, setLocalEntries] = useState<TastingEntry[]>(serverEntries);
 
-  const myEntry = entries.find(
+  const myEntry = localEntries.find(
     (e) => e.user_id === currentUserId && e.wine_number === currentWine
   );
 
-  const myEntries = entries.filter((e) => e.user_id === currentUserId);
+  const myEntries = localEntries.filter((e) => e.user_id === currentUserId);
   const completedWines = myEntries.filter(
     (e) => e.rating !== null || e.appearance_notes || e.nose_notes || e.palate_notes
   ).length;
@@ -65,17 +66,24 @@ export function TastingView({
     const supabase = createClient();
 
     if (myEntry) {
+      // Optimistically update local state
+      setLocalEntries((prev) =>
+        prev.map((e) => (e.id === myEntry.id ? { ...e, ...updates } : e))
+      );
       await supabase
         .from("tasting_entries")
         .update(updates)
         .eq("id", myEntry.id);
     } else {
-      await supabase.from("tasting_entries").insert({
+      const { data } = await supabase.from("tasting_entries").insert({
         session_id: session.id,
         user_id: currentUserId,
         wine_number: currentWine,
         ...updates,
-      });
+      }).select().single();
+      if (data) {
+        setLocalEntries((prev) => [...prev, data]);
+      }
     }
     setSaving(false);
   }
@@ -498,6 +506,7 @@ function RatingTab({
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: wineCount }, (_, i) => {
             const rank = i + 1;
+            const isSelected = ranking === rank;
             const isUsedElsewhere = allEntries.some(
               (e) =>
                 e.wine_number !== currentWine && e.ranking === rank
@@ -506,20 +515,25 @@ function RatingTab({
               <button
                 key={rank}
                 onClick={() => {
-                  setRanking(rank);
-                  onSave({ ranking: rank });
+                  if (isSelected) {
+                    setRanking(null);
+                    onSave({ ranking: null });
+                  } else {
+                    setRanking(rank);
+                    onSave({ ranking: rank });
+                  }
                 }}
-                disabled={isUsedElsewhere}
+                disabled={!isSelected && isUsedElsewhere}
                 className={cn(
                   "w-11 h-11 rounded-xl font-semibold text-sm transition-colors relative",
-                  ranking === rank
+                  isSelected
                     ? "bg-gold-500 text-white"
                     : isUsedElsewhere
                       ? "bg-gray-50 text-gray-300 border border-gray-200 cursor-not-allowed"
                       : "bg-white border border-wine-200 text-wine-600 hover:bg-wine-50"
                 )}
               >
-                {rank === 1 && ranking === rank && (
+                {rank === 1 && isSelected && (
                   <Trophy className="w-3.5 h-3.5 absolute -top-1 -right-1 text-gold-500" />
                 )}
                 {rank}
